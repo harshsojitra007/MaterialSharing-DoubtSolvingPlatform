@@ -28,22 +28,20 @@ exports.signup = catchAsync(async (req, res) => {
 
   try {
     let verifiedUser = await User.findOne({ name: name });
-    console.log(verifiedUser);
     if(verifiedUser){
       res.status(409).json("User already exist with provided username!!");
       return;
     }
 
     verifiedUser = await User.findOne({ email: email });
-    console.log(verifiedUser);
     if(verifiedUser){
       res.status(409).json("User already exist with provided Email!!");
+      return;
     }
 
     let findUser = await UnverifiedUser.findOne({ name: name });
-    console.log(findUser);
     if(findUser){
-      jwt.verify(findUser.token, name, async (err, data) => {
+      jwt.verify(findUser.token, process.env.JWT_SECRET, async (err, data) => {
         if(err){
           await UnverifiedUser.findOneAndDelete({ name: name });
         }else{
@@ -54,10 +52,8 @@ exports.signup = catchAsync(async (req, res) => {
     }
 
     findUser = await UnverifiedUser.findOne({ email: email });
-    console.log(findUser);
     if(findUser){
-      jwt.verify(findUser.token, name, async (err, data) => {
-        console.log(err, data);
+      jwt.verify(findUser.token, process.env.JWT_SECRET, async (err, data) => {
         if(err){
           await UnverifiedUser.findOneAndDelete({ email: email });
         }else{
@@ -70,7 +66,7 @@ exports.signup = catchAsync(async (req, res) => {
     const token = createSendToken(name);
     await UnverifiedUser.create({ name: name, email: email, password: hashedPassword, token: token });
 
-    const verificationURL = `http://localhost:3000/verify?user=${name}&token=${token}`;
+    const verificationURL = `http://localhost:5000/user/verify/${token}`;
     const reportURL = `http://localhost:3000/report`;
 
     const message = `
@@ -109,10 +105,14 @@ exports.signup = catchAsync(async (req, res) => {
     if (err.code == 11000) {
       res.status(409).json("User already exists!");
     } else {
-      console.log(err);
       res.status(500).json("Internal server error! Please try again!!");
     }
   }
+});
+
+exports.verifyAccount = catchAsync(async (req, res) => {
+  const token = req.params.token;
+  console.log(token);
 });
 
 exports.login = catchAsync(async (req, res) => {
